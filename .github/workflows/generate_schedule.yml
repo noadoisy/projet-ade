@@ -1,13 +1,10 @@
 name: Génération EDT Statique
 
-# Déclenche l'action tous les jours à 2h00 du matin (CET)
 on:
+  # Déclenche l'action tous les jours à 3h du matin UTC (heure creuse)
   schedule:
-    # Syntaxe cron: (minute heure jour-du-mois mois jour-de-la-semaine)
-    # Exécuté à 2h00 UTC, ce qui est souvent 3h00 ou 4h00 en France.
-    - cron: '0 2 * * *' 
-  # Permet de lancer manuellement depuis l'interface GitHub
-  workflow_dispatch: 
+    - cron: '0 3 * * *' 
+  workflow_dispatch: # Permet de lancer manuellement
 
 jobs:
   generate:
@@ -29,9 +26,8 @@ jobs:
       run: python parser.py
       
     - name: 5. Commit et Push du nouveau data.json
-      # On utilise une action pour ajouter le fichier JSON généré
+      # Cette étape met à jour le fichier de données dans votre dépôt GitHub
       uses: stefanzweifel/git-auto-commit-action@v5
       with:
         commit_message: '🤖 Mise à jour automatique de l''EDT (data.json)'
-        # Ne committe que le fichier de données
         file_pattern: 'data.json'

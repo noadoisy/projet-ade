@@ -4,22 +4,25 @@ from datetime import datetime
 import json
 import os
 
-# REMPLACEZ par l'URL ICS de votre groupe/promotion IUT Valence
-ICS_URL = "VOTRE_LIEN_ICS_ADE_VALENCE_ICI"
+# --- VOS PARAMÈTRES ---
+ICS_CODE = "73774" # Votre identifiant spécifique
+BASE_URL = "https://intranet.iut-valence.fr/ICS_ADE/"
+# ----------------------
+
 OUTPUT_FILE = "data.json"
 
 def fetch_and_parse_ics():
-    """Récupère l'ICS et retourne la liste des événements structurés."""
-    print("Début du téléchargement de l'ICS...")
+    """Récupère l'ICS de votre promotion et retourne la liste des événements."""
+    full_url = f"{BASE_URL}{ICS_CODE}.ics"
+    print(f"Début du téléchargement depuis {full_url}...")
     try:
-        response = requests.get(ICS_URL)
+        response = requests.get(full_url, timeout=10)
         response.raise_for_status() 
         cal = Calendar.from_ical(response.content)
         
         events = []
         for component in cal.walk():
             if component.name == "VEVENT":
-                # Convertit les objets datetime en chaînes standard ISO 8601
                 start_dt = component.get('dtstart').dt
                 end_dt = component.get('dtend').dt
                 
@@ -34,12 +37,10 @@ def fetch_and_parse_ics():
         print(f"Analyse terminée. {len(events)} événements trouvés.")
         return {"events": events, "last_updated": datetime.now().isoformat()}
 
-    except requests.exceptions.RequestException as e:
-        print(f"Erreur de connexion/téléchargement: {e}")
-        return {"error": f"Erreur de connexion/téléchargement: {e}"}
+    except requests.exceptions.HTTPError as e:
+        return {"error": f"Lien {ICS_CODE} non trouvé (Erreur HTTP {e.response.status_code})."}
     except Exception as e:
-        print(f"Erreur d'analyse ICS: {e}")
-        return {"error": f"Erreur d'analyse ICS: {e}"}
+        return {"error": f"Erreur critique lors de l'analyse : {e}"}
 
 def generate_json_file():
     """Exécute l'analyse et sauvegarde le résultat dans le fichier JSON."""
@@ -50,5 +51,5 @@ def generate_json_file():
     
     print(f"Fichier {OUTPUT_FILE} généré avec succès.")
 
-if __name__ == '__main__':
+if __name__ == '__main_':
     generate_json_file()

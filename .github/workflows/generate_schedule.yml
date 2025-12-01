@@ -1,8 +1,5 @@
 name: Génération EDT Statique
 
-permissions:
-  contents: write
-
 on:
   # Déclenche l'action tous les jours à 3h du matin UTC (heure creuse)
   schedule:

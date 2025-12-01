@@ -5,15 +5,16 @@ import json
 import xml.etree.ElementTree as ET
 
 # --- PARAMÈTRES ADE DÉDUITS DU SITE EXISTANT ---
-# Ces paramètres sont nécessaires pour interroger l'API ADE de l'UGA
 API_URL = "https://api.ade-edt.fr" 
-BASE_URL = API_URL  # Pour simplifier, on utilise API_URL
+BASE_URL = API_URL  
 PROJECT_ID = "1"
+# Ceci est la clé déduite du site UGA/ADE pour identifier les données
 PROJECT_DATA = "51278da58f6a6c7ad5fcd549aa2f4a9cd0fdf1bdade3448b5e9400c4e4311a3aaf5892c4f26a6a95b2be9815c8d857a2533823d5748e25e65116564f1a3e9953bfee61b8973d94f85031bb73a57c6000da7dc82411a94d7de68c82ab46db4fa8,1"
 ICS_BASE_URL = "https://intranet.iut-valence.fr/ICS_ADE/"
 # -----------------------------------------------
 
 OUTPUT_FILE = "data.json"
+# Filtre pour s'assurer de ne récupérer que les promotions de l'IUT Valence
 IUT_VALENCE_PATH_FILTER = "CAMPUS Valence.VALENCE-IUT Valence" 
 
 def fetch_ics_data(code):
@@ -22,6 +23,11 @@ def fetch_ics_data(code):
     try:
         response = requests.get(full_url, timeout=10)
         response.raise_for_status() 
+        
+        # Vérification si le fichier est vide ou n'est pas un calendrier valide
+        if not response.content.strip():
+             return None # Ignorer les fichiers vides
+
         cal = Calendar.from_ical(response.content)
         
         events = []
@@ -60,12 +66,13 @@ def fetch_and_generate_schedule():
         root = ET.fromstring(xml_data)
         all_iut_valence_resources = []
         
-        # Le filtre est basé sur le chemin ('path') dans le XML que vous avez fourni
         for leaf in root.findall(".//leaf"):
             path = leaf.attrib.get('path', '')
-            if path.startswith(IUT_VALENCE_PATH_FILTER):
+            # L'ID est le code XXX dans l'URL ICS
+            resource_id = leaf.attrib.get('id')
+            if path.startswith(IUT_VALENCE_PATH_FILTER) and resource_id:
                 all_iut_valence_resources.append({
-                    "id": leaf.attrib.get('id'),
+                    "id": resource_id,
                     "nom": leaf.attrib.get('name')
                 })
     except Exception as e:
@@ -80,20 +87,19 @@ def fetch_and_generate_schedule():
     }
     
     for resource in all_iut_valence_resources:
-        # Utiliser l'ID (le code XXX) pour récupérer le fichier ICS
         events = fetch_ics_data(resource['id'])
         
-        if events is not None and events: # S'assurer que les données ont été récupérées et qu'il y a des événements
+        if events is not None and events: 
             full_schedule_data['promotions'].append({
                 "id": resource['id'],
                 "nom": resource['nom'],
                 "events": events
             })
             print(f"  -> {resource['nom']} OK.")
-        # Les ressources qui retournent None (404 ou vide) sont ignorées
 
     # 4. Sauvegarder le fichier JSON final
     with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
+        # 'ensure_ascii=False' permet d'avoir les accents correctement dans le JSON
         json.dump(full_schedule_data, f, ensure_ascii=False, indent=4)
         
     print(f"Succès ! Fichier '{OUTPUT_FILE}' généré pour {len(full_schedule_data['promotions'])} promotions valides.")

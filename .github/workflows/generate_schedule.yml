@@ -1,39 +1,37 @@
 name: Génération EDT Statique
 
 on:
-  # Déclenche l'action tous les jours à 3h du matin UTC (heure creuse)
+  # Déclenché tous les jours à 22h00 UTC (23h00 ou 00h00 heure française)
   schedule:
-    - cron: '0 3 * * *' 
-  workflow_dispatch: # Permet de lancer manuellement
+    - cron: '0 22 * * *'
+  # Permet de déclencher l'Action manuellement depuis l'onglet Actions
+  workflow_dispatch:
 
-# NOUVEAU BLOC : C'EST LA CORRECTION
 permissions:
-  contents: write # Cette ligne permet à l'action de "committer" et de "pusher"
-  pages: write    # (Optionnel, mais bonne pratique)
-  id-token: write # (Optionnel, mais bonne pratique)
+  # 🛑 C'EST LE BLOC CRITIQUE : Autorise l'Action à écrire dans le dépôt (pour créer data.json)
+  contents: write 
 
 jobs:
   generate:
     runs-on: ubuntu-latest
-
     steps:
-    - name: 1. Checkout du code
-      uses: actions/checkout@v4
-      
-    - name: 2. Configuration de Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.x'
+      - name: Checkout du dépôt
+        uses: actions/checkout@v4
 
-    - name: 3. Installation des dépendances
-      run: pip install -r requirements.txt
-      
-    - name: 4. Exécution du script Python (Génération de data.json)
-      run: python parser.py
-      
-    - name: 5. Commit et Push du nouveau data.json
-      # Cette étape met à jour le fichier de données dans votre dépôt GitHub
-      uses: stefanzweifel/git-auto-commit-action@v5
-      with:
-        commit_message: '🤖 Mise à jour automatique de l''EDT (data.json)'
-        file_pattern: 'data.json'
+      - name: Configuration de Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Installer les dépendances
+        run: pip install -r requirements.txt
+        
+      - name: Exécuter le script de parsing et de génération
+        run: python parser.py
+
+      - name: Commit et Push de data.json
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          # Seul le nouveau fichier data.json sera commité
+          file_pattern: data.json
+          commit_message: "🤖 Mise à jour automatique de l'EDT [skip ci]"

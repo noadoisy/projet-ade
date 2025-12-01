@@ -9,6 +9,12 @@ on:
     - cron: '0 3 * * *' 
   workflow_dispatch: # Permet de lancer manuellement
 
+# NOUVEAU BLOC : C'EST LA CORRECTION
+permissions:
+  contents: write # Cette ligne permet à l'action de "committer" et de "pusher"
+  pages: write    # (Optionnel, mais bonne pratique)
+  id-token: write # (Optionnel, mais bonne pratique)
+
 jobs:
   generate:
     runs-on: ubuntu-latest
